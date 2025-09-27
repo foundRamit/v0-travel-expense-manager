@@ -11,6 +11,7 @@ import { CATEGORIES } from "@/lib/data"
 import type { Expense } from "@/lib/types"
 import { formatINR } from "@/lib/format"
 import { getGroupTotals } from "@/lib/calculations"
+import { suggestCategory } from "@/lib/nlp"
 
 function newId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`
@@ -22,6 +23,7 @@ export function Expenses() {
   const [description, setDescription] = useState("")
   const [amount, setAmount] = useState<string>("")
   const [category, setCategory] = useState<string>("Food")
+  const [userChangedCategory, setUserChangedCategory] = useState(false) // track manual override
   const [paidBy, setPaidBy] = useState<string>("")
   const [splitWith, setSplitWith] = useState<string[]>([])
 
@@ -43,6 +45,16 @@ export function Expenses() {
     setSplitWith((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  function onDescriptionChange(text: string) {
+    setDescription(text)
+    if (!userChangedCategory) {
+      const suggestion = suggestCategory(text)
+      if (suggestion.score > 0) {
+        setCategory(suggestion.category)
+      }
+    }
+  }
+
   function handleAdd() {
     if (!selectedGroup || !amount || Number.isNaN(Number(amount)) || !validPaidBy || validSplitWith.length === 0) return
     const exp: Expense = {
@@ -58,6 +70,7 @@ export function Expenses() {
     addExpense(exp)
     setDescription("")
     setAmount("")
+    setUserChangedCategory(false) // reset user override after adding expense
   }
 
   return (
@@ -88,7 +101,13 @@ export function Expenses() {
 
             <label className="grid gap-1">
               <span className="text-sm text-slate-700">Category</span>
-              <Select value={category} onValueChange={setCategory}>
+              <Select
+                value={category}
+                onValueChange={(v) => {
+                  setCategory(v)
+                  setUserChangedCategory(true) // user override
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -117,7 +136,7 @@ export function Expenses() {
             <span className="text-sm text-slate-700">Description</span>
             <Input
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => onDescriptionChange(e.target.value)} // hook in suggestion
               placeholder="e.g., Lunch at cafe"
             />
           </label>

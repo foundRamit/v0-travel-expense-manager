@@ -37,6 +37,12 @@ export type Doc = {
   createdAt: string // ISO
 }
 
+export type SettlementTransaction = {
+  fromMemberId: string
+  toMemberId: string
+  amount: number
+}
+
 export type AppData = {
   groups: Group[]
   expenses: Expense[]

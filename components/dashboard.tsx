@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAppData } from "@/hooks/use-app-data"
 import { formatINR } from "@/lib/format"
-import { getGroupTotals, getRecentActivity } from "@/lib/calculations"
+import { getGroupTotals, getRecentActivity, getSettlementPlanSmart } from "@/lib/calculations"
+import { predictTotalForGroup } from "@/lib/forecast"
 
 export function Dashboard() {
   const { data } = useAppData()
@@ -84,6 +85,10 @@ export function Dashboard() {
                 ))}
                 {Object.keys(totals.byCategory).length === 0 && <li className="text-white/80">No expenses yet.</li>}
               </ul>
+              {/* Forecast total */}
+              <p className="text-white/80 text-sm mt-3">
+                Forecast total: {formatINR(predictTotalForGroup(data, firstGroup.id))}
+              </p>
             </CardContent>
           </Card>
 
@@ -105,6 +110,29 @@ export function Dashboard() {
                   )
                 })}
               </ul>
+              {/* Smart settlement recommendation */}
+              {(() => {
+                const plan = getSettlementPlanSmart(data, firstGroup.id)
+                if (!plan.length) {
+                  return <p className="text-white/80 text-sm mt-3">No settlements needed.</p>
+                }
+                return (
+                  <div className="mt-3">
+                    <p className="text-white/80 text-sm mb-1">Recommended settlement (min transactions):</p>
+                    <ul className="text-sm space-y-1">
+                      {plan.map((t, idx) => {
+                        const from = firstGroup.members.find((m) => m.id === t.fromMemberId)?.name ?? "Member"
+                        const to = firstGroup.members.find((m) => m.id === t.toMemberId)?.name ?? "Member"
+                        return (
+                          <li key={idx} className="text-white">
+                            {from} pays {to} {formatINR(t.amount)}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
         </section>

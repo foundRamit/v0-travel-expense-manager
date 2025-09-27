@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAppData } from "@/hooks/use-app-data"
 import { formatINR } from "@/lib/format"
-import { getGroupTotals } from "@/lib/calculations"
+import { getGroupTotals, getSettlementPlanSmart } from "@/lib/calculations"
+import { predictTotalForGroup } from "@/lib/forecast"
 
 type ChatMsg = { role: "user" | "assistant"; text: string; at: string }
 
@@ -15,7 +16,9 @@ function answer(query: string, ctx: ReturnType<typeof useAppData>["data"]) {
   if (!ctx) return "I couldn't access data. Please try again."
 
   const group = ctx.groups[0]
-  const totals = group ? getGroupTotals(ctx, group.id) : { total: 0, byCategory: {}, memberBalances: {} }
+  const totals = group
+    ? getGroupTotals(ctx, group.id)
+    : { total: 0, byCategory: {}, memberBalances: {} as Record<string, number> }
 
   // Hardcoded intents
   if (q.includes("total") || q.includes("summary") || q.includes("overall")) {
@@ -24,6 +27,7 @@ function answer(query: string, ctx: ReturnType<typeof useAppData>["data"]) {
       lines.push(`Group considered: ${group.name}.`)
       const parts = Object.entries(totals.byCategory).map(([c, v]) => `${c}: ${formatINR(v)}`)
       if (parts.length) lines.push(`By category — ${parts.join(", ")}.`)
+      lines.push(`Forecast total: ${formatINR(predictTotalForGroup(ctx, group.id))}.`)
     }
     return lines.join(" ")
   }
@@ -58,7 +62,20 @@ function answer(query: string, ctx: ReturnType<typeof useAppData>["data"]) {
     return "All amounts are in INR (₹) using Indian numbering format."
   }
 
-  return "I can help with totals, per-person balances, group members, how to add expenses or documents, and currency info. Try: 'Show per person balance' or 'Total summary'."
+  // Settlement/minimum transactions intent
+  if (q.includes("settle") || q.includes("simplify") || q.includes("minimum") || q.includes("transactions")) {
+    if (!group) return "No group found."
+    const plan = getSettlementPlanSmart(ctx, group.id)
+    if (plan.length === 0) return `No settlements needed for ${group.name}. Everyone is even.`
+    const lines = plan.map((t) => {
+      const from = group.members.find((m) => m.id === t.fromMemberId)?.name ?? "Member"
+      const to = group.members.find((m) => m.id === t.toMemberId)?.name ?? "Member"
+      return `${from} pays ${to} ${formatINR(t.amount)}`
+    })
+    return `Optimized settlement (fewer, higher-value payments) for ${group.name}: ${lines.join("; ")}.`
+  }
+
+  return "I can help with totals, per-person balances, group members, how to add expenses or documents, currency info, and settlements. Try: 'Show per person balance' or 'Total summary'."
 }
 
 export function Chatbot() {
