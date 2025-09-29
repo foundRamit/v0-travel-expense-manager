@@ -14,7 +14,7 @@ function newId(prefix: string) {
 }
 
 export function Documents() {
-  const { data, addDoc } = useAppData()
+  const { data, addDoc, removeDoc } = useAppData()
   const [groupId, setGroupId] = useState<string>("")
   const [title, setTitle] = useState("")
   const [type, setType] = useState<string>("Ticket")
@@ -40,6 +40,12 @@ export function Documents() {
     setTitle("")
     setUrl("")
     setExpiry("")
+  }
+
+  function handleDelete(id: string) {
+    if (confirm("Delete this document? This cannot be undone.")) {
+      removeDoc(id)
+    }
   }
 
   return (
@@ -92,8 +98,13 @@ export function Documents() {
 
           <div className="grid md:grid-cols-2 gap-4">
             <label className="grid gap-1">
-              <span className="text-sm text-slate-700">URL (optional)</span>
-              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+              <span className="text-sm text-slate-700">Google Drive URL (optional)</span>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://drive.google.com/file/d/..."
+              />
+              <span className="text-xs text-slate-500">Paste a Google Drive link to the file or folder.</span>
             </label>
 
             <label className="grid gap-1">
@@ -117,18 +128,19 @@ export function Documents() {
           </CardHeader>
           <CardContent>
             <div className="text-sm">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 font-medium text-slate-700">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-2 font-medium text-slate-700">
                 <div>Title</div>
                 <div>Group</div>
                 <div className="hidden md:block">Type</div>
                 <div className="hidden md:block">Expiry</div>
                 <div>Created</div>
+                <div className="hidden md:block text-right">Actions</div>
               </div>
               <div className="mt-2 space-y-2">
                 {data.docs.map((d) => {
                   const g = data.groups.find((x) => x.id === d.groupId)
                   return (
-                    <div key={d.id} className="grid grid-cols-2 md:grid-cols-5 gap-2 py-2 border-b border-slate-100">
+                    <div key={d.id} className="grid grid-cols-2 md:grid-cols-6 gap-2 py-2 border-b border-slate-100">
                       <div className="text-slate-800">
                         {d.url ? (
                           <a href={d.url} className="text-sky-700 underline" target="_blank" rel="noreferrer">
@@ -144,6 +156,45 @@ export function Documents() {
                         {d.expiryDate ? new Date(d.expiryDate).toLocaleDateString() : "-"}
                       </div>
                       <div>{new Date(d.createdAt).toLocaleDateString()}</div>
+                      <div className="hidden md:flex items-center justify-end gap-2">
+                        {d.url && (
+                          <a
+                            href={d.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs px-2 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          >
+                            Open
+                          </a>
+                        )}
+                        <Button
+                          variant="destructive"
+                          className="text-xs px-2 py-1 h-7"
+                          onClick={() => handleDelete(d.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                      {/* Mobile actions */}
+                      <div className="md:hidden col-span-2 flex items-center justify-start gap-2">
+                        {d.url && (
+                          <a
+                            href={d.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs px-2 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          >
+                            Open
+                          </a>
+                        )}
+                        <Button
+                          variant="destructive"
+                          className="text-xs px-2 py-1 h-7"
+                          onClick={() => handleDelete(d.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}

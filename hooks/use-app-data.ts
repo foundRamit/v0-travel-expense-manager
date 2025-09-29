@@ -103,5 +103,23 @@ export function useAppData() {
         }
       })
     },
+    removeDoc(docId: string) {
+      update((prev) => {
+        const doc = prev.docs.find((d) => d.id === docId)
+        return {
+          ...prev,
+          docs: prev.docs.filter((d) => d.id !== docId),
+          activity: [
+            {
+              id: crypto.randomUUID(),
+              type: "doc",
+              message: `Deleted document: ${doc?.title ?? "Document"}`,
+              at: isoNow(),
+            },
+            ...prev.activity,
+          ],
+        }
+      })
+    },
   }
 }
