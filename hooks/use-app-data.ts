@@ -3,6 +3,7 @@ import useSWR from "swr"
 import type { AppData, Doc, Expense, Group } from "@/lib/types"
 import { getInitialSeed } from "@/lib/data"
 import { isoNow } from "@/lib/format"
+import { categorizeExpense } from "@/lib/categorize"
 
 const STORAGE_KEY = "travel_mvp_data_v1"
 
@@ -54,11 +55,20 @@ export function useAppData() {
       }))
     },
     addExpense(expense: Expense) {
+      const computed = categorizeExpense(expense.description)
+      const finalExpense: Expense =
+        expense.category === "Other" && computed !== "Other" ? { ...expense, category: computed } : expense
+
       update((prev) => ({
         ...prev,
-        expenses: [expense, ...prev.expenses],
+        expenses: [finalExpense, ...prev.expenses],
         activity: [
-          { id: crypto.randomUUID(), type: "expense", message: `Added expense: ${expense.description}`, at: isoNow() },
+          {
+            id: crypto.randomUUID(),
+            type: "expense",
+            message: `Added expense: ${finalExpense.description} (${finalExpense.category})`,
+            at: isoNow(),
+          },
           ...prev.activity,
         ],
       }))
