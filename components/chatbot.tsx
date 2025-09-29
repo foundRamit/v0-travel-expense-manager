@@ -11,11 +11,22 @@ import { predictTotalForGroup } from "@/lib/forecast"
 
 type ChatMsg = { role: "user" | "assistant"; text: string; at: string }
 
-function answer(query: string, ctx: ReturnType<typeof useAppData>["data"]) {
+function pickGroup(query: string, ctx: ReturnType<typeof useAppData>["data"], selectedGroupId?: string) {
+  if (!ctx || ctx.groups.length === 0) return undefined
+  // priority: explicit selector > parse from text > first group
+  const byId = selectedGroupId ? ctx.groups.find((g) => g.id === selectedGroupId) : undefined
+  if (byId) return byId
+
+  const q = query.toLowerCase()
+  const foundByName = ctx.groups.find((g) => q.includes(g.name.toLowerCase()))
+  return foundByName ?? ctx.groups[0]
+}
+
+function answer(query: string, ctx: ReturnType<typeof useAppData>["data"], selectedGroupId?: string) {
   const q = query.toLowerCase()
   if (!ctx) return "I couldn't access data. Please try again."
 
-  const group = ctx.groups[0]
+  const group = pickGroup(query, ctx, selectedGroupId)
   const totals = group
     ? getGroupTotals(ctx, group.id)
     : { total: 0, byCategory: {}, memberBalances: {} as Record<string, number> }
@@ -82,6 +93,8 @@ export function Chatbot() {
   const store = useAppData()
   const { data } = store
   const [input, setInput] = useState("")
+  const defaultGroupId = data?.groups?.[0]?.id
+  const [groupId, setGroupId] = useState<string | undefined>(defaultGroupId)
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
@@ -98,7 +111,7 @@ export function Chatbot() {
   const handleSend = () => {
     if (!input.trim()) return
     const userMsg: ChatMsg = { role: "user", text: input.trim(), at: new Date().toISOString() }
-    const replyText = answer(input, data)
+    const replyText = answer(input, data, groupId) // pass selected group
     const botMsg: ChatMsg = { role: "assistant", text: replyText, at: new Date().toISOString() }
     setMessages((prev) => [...prev, userMsg, botMsg])
     setInput("")
@@ -106,14 +119,28 @@ export function Chatbot() {
 
   return (
     <main className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-balance">AI Chat (Hardcoded)</h1>
+      <h1 className="text-2xl font-semibold text-balance ascii-title">AI Chat</h1>
 
-      <Card>
-        <CardHeader>
+      <Card className="ascii-border">
+        <CardHeader className="flex items-center justify-between">
           <CardTitle>Ask about expenses, balances, or how to use the app</CardTitle>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-500 hidden md:block">Group</label>
+            <select
+              className="pill-ghost px-3 py-1 text-xs"
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+            >
+              {(data?.groups ?? []).map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="border rounded-md p-3 h-80 overflow-auto bg-white">
+          <div className="ascii-border rounded-md p-3 h-80 overflow-auto bg-card">
             <ul className="space-y-3">
               {messages.map((m, idx) => (
                 <li key={idx} className={m.role === "assistant" ? "text-slate-800" : "text-slate-900"}>

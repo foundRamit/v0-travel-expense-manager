@@ -73,5 +73,25 @@ export function useAppData() {
         ],
       }))
     },
+    removeGroup(groupId: string) {
+      update((prev) => {
+        const group = prev.groups.find((g) => g.id === groupId)
+        return {
+          ...prev,
+          groups: prev.groups.filter((g) => g.id !== groupId),
+          expenses: prev.expenses.filter((e) => e.groupId !== groupId),
+          docs: prev.docs.filter((d) => d.groupId !== groupId),
+          activity: [
+            {
+              id: crypto.randomUUID(),
+              type: "group",
+              message: `Deleted group "${group?.name ?? "Group"}"`,
+              at: isoNow(),
+            },
+            ...prev.activity,
+          ],
+        }
+      })
+    },
   }
 }

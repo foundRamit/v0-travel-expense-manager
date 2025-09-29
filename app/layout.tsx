@@ -7,8 +7,8 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
+  title: "TripSplit",
+  description: "TripSplit",
   generator: "v0.app",
 }
 
@@ -19,9 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased min-h-dvh bg-gradient-to-b from-sky-200 via-sky-300 to-blue-500`}
-      >
+      <body className={`font-mono ${GeistSans.variable} ${GeistMono.variable} antialiased min-h-dvh`}>
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
       </body>

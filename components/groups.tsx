@@ -12,7 +12,7 @@ function newId(prefix: string) {
 }
 
 export function Groups() {
-  const { data, addGroup } = useAppData()
+  const { data, addGroup, removeGroup } = useAppData() // include removeGroup from store
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [members, setMembers] = useState<string>("")
@@ -79,8 +79,19 @@ export function Groups() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {data.groups.map((g) => (
           <Card key={g.id}>
-            <CardHeader>
+            <CardHeader className="flex items-center justify-between">
               <CardTitle>{g.name}</CardTitle>
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:bg-red-600 hover:text-white"
+                onClick={() => {
+                  if (!confirm(`Delete group "${g.name}"? This will remove its expenses and documents.`)) return
+                  removeGroup(g.id)
+                }}
+                aria-label={`Delete group ${g.name}`}
+              >
+                Delete
+              </Button>
             </CardHeader>
             <CardContent className="text-sm">
               {g.description && <p className="text-slate-700 mb-2">{g.description}</p>}

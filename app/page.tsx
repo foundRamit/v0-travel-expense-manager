@@ -24,9 +24,9 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="min-h-dvh flex">
+    <div className="min-h-dvh flex ascii-border">
       <Sidebar current={nav} onChange={setNav} />
-      <section className="flex-1">
+      <section className="flex-1 text-black dark:text-black">
         {nav === "dashboard" && <Dashboard />}
         {nav === "groups" && <Groups />}
         {nav === "expenses" && <Expenses />}
