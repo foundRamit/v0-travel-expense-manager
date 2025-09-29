@@ -31,6 +31,21 @@ function answer(query: string, ctx: ReturnType<typeof useAppData>["data"], selec
     ? getGroupTotals(ctx, group.id)
     : { total: 0, byCategory: {}, memberBalances: {} as Record<string, number> }
 
+  if (q.includes("forecast") || q.includes("predict") || q.includes("estimate") || q.includes("budget")) {
+    if (!group) return "No group found to forecast."
+    const hasDates = Boolean(group.startDate && group.endDate)
+    const est = predictTotalForGroup(ctx, group.id)
+    const parts: string[] = []
+    if (hasDates) {
+      parts.push(`Forecast total for ${group.name} (${group.startDate} → ${group.endDate}): ${formatINR(est)}.`)
+      parts.push("This uses linear regression on daily cumulative spend and projects to your trip end date.")
+    } else {
+      parts.push(`Forecast total for ${group.name}: ${formatINR(est)}.`)
+      parts.push("Tip: set your trip Start and End dates in Groups to forecast for the entire trip duration.")
+    }
+    return parts.join(" ")
+  }
+
   // Hardcoded intents
   if (q.includes("total") || q.includes("summary") || q.includes("overall")) {
     const lines = [`Overall total: ${formatINR(totals.total)}.`]
@@ -38,7 +53,12 @@ function answer(query: string, ctx: ReturnType<typeof useAppData>["data"], selec
       lines.push(`Group considered: ${group.name}.`)
       const parts = Object.entries(totals.byCategory).map(([c, v]) => `${c}: ${formatINR(v)}`)
       if (parts.length) lines.push(`By category — ${parts.join(", ")}.`)
-      lines.push(`Forecast total: ${formatINR(predictTotalForGroup(ctx, group.id))}.`)
+      const est = predictTotalForGroup(ctx, group.id)
+      if (group.startDate && group.endDate) {
+        lines.push(`Forecast to trip end (${group.startDate} → ${group.endDate}): ${formatINR(est)}.`)
+      } else {
+        lines.push(`Forecast total: ${formatINR(est)}.`)
+      }
     }
     return lines.join(" ")
   }
@@ -98,7 +118,7 @@ export function Chatbot() {
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
-      text: "Hi! I’m your travel assistant. Ask me for a total summary, per-person balances, or how to add expenses/documents.",
+      text: "Hi! I’m your travel assistant. Ask me for a total summary, per-person balances, how to add expenses/documents, or to forecast your trip budget.",
       at: new Date().toISOString(),
     },
     {

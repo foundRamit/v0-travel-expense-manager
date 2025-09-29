@@ -16,6 +16,8 @@ export function Groups() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [members, setMembers] = useState<string>("")
+  const [startDate, setStartDate] = useState<string>("")
+  const [endDate, setEndDate] = useState<string>("")
 
   if (!data) return null
 
@@ -32,11 +34,15 @@ export function Groups() {
       name: name.trim(),
       members: mems,
       description: description.trim() || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     }
     addGroup(group)
     setName("")
     setDescription("")
     setMembers("")
+    setStartDate("")
+    setEndDate("")
   }
 
   return (
@@ -68,6 +74,16 @@ export function Groups() {
               placeholder="e.g., Aditi, Karan, Nisha"
             />
           </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="grid gap-1">
+              <span className="text-sm text-slate-700">Trip Start Date</span>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-sm text-slate-700">Trip End Date</span>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </label>
+          </div>
           <div>
             <Button className="bg-sky-600 hover:bg-sky-700" onClick={handleCreate}>
               Create
@@ -95,6 +111,11 @@ export function Groups() {
             </CardHeader>
             <CardContent className="text-sm">
               {g.description && <p className="text-slate-700 mb-2">{g.description}</p>}
+              {(g.startDate || g.endDate) && (
+                <p className="text-slate-700 mb-2">
+                  Dates: {g.startDate ?? "—"} to {g.endDate ?? "—"}
+                </p>
+              )}
               <p className="text-slate-700 font-medium mb-1">Members</p>
               <ul className="text-slate-700 list-disc pl-5">
                 {g.members.map((m) => (

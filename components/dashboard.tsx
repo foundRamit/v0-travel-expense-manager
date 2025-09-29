@@ -5,14 +5,28 @@ import { useAppData } from "@/hooks/use-app-data"
 import { formatINR } from "@/lib/format"
 import { getGroupTotals, getRecentActivity, getSettlementPlanSmart } from "@/lib/calculations"
 import { predictTotalForGroup } from "@/lib/forecast"
+import { useMemo } from "react"
 
 export function Dashboard() {
   const { data } = useAppData()
+  const activeGroup = useMemo(() => {
+    const groups = data?.groups ?? []
+    if (groups.length === 0) return undefined
+    const ranked = groups
+      .map((g) => {
+        const exps = data.expenses.filter((e) => e.groupId === g.id)
+        const last = exps.length ? Math.max(...exps.map((e) => new Date(e.date).getTime())) : Number.NEGATIVE_INFINITY
+        return { g, last, count: exps.length }
+      })
+      .sort((a, b) => b.last - a.last || b.count - a.count)
+    return ranked[0]?.g ?? groups[0]
+  }, [data])
+
   if (!data) return null
 
-  const firstGroup = data.groups[0]
-  const totals = firstGroup ? getGroupTotals(data, firstGroup.id) : { total: 0, byCategory: {}, memberBalances: {} }
+  const totals = activeGroup ? getGroupTotals(data, activeGroup.id) : { total: 0, byCategory: {}, memberBalances: {} }
   const recent = getRecentActivity(data, 6)
+  const hasExpensesForActive = !!activeGroup && data.expenses.some((e) => e.groupId === activeGroup.id)
 
   return (
     <main className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto">
@@ -69,11 +83,11 @@ export function Dashboard() {
       </section>
 
       {/* Group details */}
-      {firstGroup && (
+      {activeGroup && (
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="glass ascii-border">
             <CardHeader>
-              <CardTitle className="text-black ascii-title">{firstGroup.name}: By Category</CardTitle>
+              <CardTitle className="text-black ascii-title">{activeGroup.name}: By Category</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="text-sm">
@@ -85,20 +99,21 @@ export function Dashboard() {
                 ))}
                 {Object.keys(totals.byCategory).length === 0 && <li className="text-black/80">No expenses yet.</li>}
               </ul>
-              {/* forecast total */}
               <p className="text-black/80 text-sm mt-3">
-                Forecast total: {formatINR(predictTotalForGroup(data, firstGroup.id))}
+                {hasExpensesForActive
+                  ? `Forecast total: ${formatINR(predictTotalForGroup(data, activeGroup.id))}`
+                  : "Add an expense to see this group's forecast."}
               </p>
             </CardContent>
           </Card>
 
           <Card className="glass ascii-border">
             <CardHeader>
-              <CardTitle className="text-black ascii-title">{firstGroup.name}: Per-Person Balance</CardTitle>
+              <CardTitle className="text-black ascii-title">{activeGroup.name}: Per-Person Balance</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="text-sm">
-                {firstGroup.members.map((m) => {
+                {activeGroup.members.map((m) => {
                   const bal = totals.memberBalances[m.id] || 0
                   return (
                     <li key={m.id} className="flex items-center justify-between py-1">
@@ -112,7 +127,7 @@ export function Dashboard() {
               </ul>
               {/* settlement recommendation */}
               {(() => {
-                const plan = getSettlementPlanSmart(data, firstGroup.id)
+                const plan = getSettlementPlanSmart(data, activeGroup.id)
                 if (!plan.length) {
                   return <p className="text-black/80 text-sm mt-3">No settlements needed.</p>
                 }
@@ -121,8 +136,8 @@ export function Dashboard() {
                     <p className="text-black/80 text-sm mb-1">Recommended settlement (min transactions):</p>
                     <ul className="text-sm space-y-1">
                       {plan.map((t, idx) => {
-                        const from = firstGroup.members.find((m) => m.id === t.fromMemberId)?.name ?? "Member"
-                        const to = firstGroup.members.find((m) => m.id === t.toMemberId)?.name ?? "Member"
+                        const from = activeGroup.members.find((m) => m.id === t.fromMemberId)?.name ?? "Member"
+                        const to = activeGroup.members.find((m) => m.id === t.toMemberId)?.name ?? "Member"
                         return (
                           <li key={idx} className="text-black">
                             {from} pays {to} {formatINR(t.amount)}

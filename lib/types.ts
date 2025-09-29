@@ -10,6 +10,8 @@ export type Group = {
   name: string
   members: Member[]
   description?: string
+  startDate?: string // ISO yyyy-mm-dd
+  endDate?: string // ISO yyyy-mm-dd
 }
 
 export type ExpenseCategory = "Food" | "Accommodation" | "Transport" | "Activities" | "Other"
